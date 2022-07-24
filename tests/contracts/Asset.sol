@@ -2,6 +2,7 @@
 pragma solidity ^0.8.1;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "hardhat/console.sol";
 
 contract Asset is ERC1155 {
     uint256 public id;

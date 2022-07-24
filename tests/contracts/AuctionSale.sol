@@ -222,6 +222,7 @@ contract AuctionSale is
             ""
         );
 
+        // maybe this should be "auction.seller" instead of "auction.bidder"?
         payable(auction.bidder).transfer(auction.currentBid);
 
         emit Settle(

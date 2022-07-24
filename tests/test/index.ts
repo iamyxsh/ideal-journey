@@ -32,14 +32,14 @@ describe("AuctionSale", function () {
     await auctionSale.deployed();
   });
 
-  describe.skip("list", async () => {
+  describe("list", async () => {
     this.beforeEach(async () => {
       await asset.mint(owner.address, 10);
       await asset.mint(from.address, 10);
       await asset.mint(to.address, 10);
       await asset.mint(other.address, 10);
     });
-    it.skip("should list the asset", async () => {
+    it("should list the asset", async () => {
       const tx = auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -56,7 +56,7 @@ describe("AuctionSale", function () {
           ethers.utils.parseEther("0.5")
         );
 
-      const auctionEndTime = auctionSale.getEndTimeForReserveAuction(1);
+      const auctionEndTime = await auctionSale.getEndTimeForReserveAuction(1);
       expect(auctionEndTime).to.equal(0);
 
       const balanceOfAuctionSale = await asset.balanceOf(
@@ -65,14 +65,14 @@ describe("AuctionSale", function () {
       );
       expect(balanceOfAuctionSale).to.equal(10);
     });
-    it.skip("should list the asset with amount more than 0", async () => {
+    it("should list the asset with amount more than 0", async () => {
       const tx = auctionSale
         .connect(owner)
         .list(0, 0, ethers.utils.parseEther("0.5"), 1 * day);
 
       await expect(tx).to.be.revertedWith("Invalid amount");
     });
-    it.skip("should list the asset with reserve price more than 100 wei", async () => {
+    it("should list the asset with reserve price more than 100 wei", async () => {
       const tx = auctionSale.connect(owner).list(0, 10, 99, 1 * day);
 
       await expect(tx).to.be.revertedWith(
@@ -81,14 +81,14 @@ describe("AuctionSale", function () {
     });
   });
 
-  describe.skip("cancel", async () => {
+  describe("cancel", async () => {
     this.beforeEach(async () => {
       await asset.mint(owner.address, 10);
       await asset.mint(from.address, 10);
       await asset.mint(to.address, 10);
       await asset.mint(other.address, 10);
     });
-    it.skip("should cancel the auction", async () => {
+    it("should cancel the auction", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -101,14 +101,14 @@ describe("AuctionSale", function () {
       const tx1 = auctionSale.getEndTimeForReserveAuction(1);
       await expect(tx1).to.be.revertedWith("Auction not found");
     });
-    it.skip("should cancel the auction which only belongs to you", async () => {
+    it("should cancel the auction which only belongs to you", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
       const tx = auctionSale.connect(from).cancel(1);
       await expect(tx).to.be.revertedWith("Not your auction");
     });
-    it.skip("should cancel the auction when it is not in progress", async () => {
+    it("should cancel the auction when it is not in progress", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -120,19 +120,19 @@ describe("AuctionSale", function () {
     });
   });
 
-  describe.skip("bid", async () => {
+  describe("bid", async () => {
     this.beforeEach(async () => {
       await asset.mint(owner.address, 10);
       await asset.mint(from.address, 10);
       await asset.mint(to.address, 10);
       await asset.mint(other.address, 10);
     });
-    it.skip("should bid on the auction", async () => {
+    it("should bid on the auction", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
 
-      const tx = auctionSale
+      const tx = await auctionSale
         .connect(from)
         .bid(1, { value: ethers.utils.parseEther("0.5") });
 
@@ -150,7 +150,7 @@ describe("AuctionSale", function () {
         );
     });
 
-    it.skip("should bid on the auction with a bid already", async () => {
+    it("should bid on the auction with a bid already", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -184,7 +184,7 @@ describe("AuctionSale", function () {
           endTime
         );
     });
-    it.skip("should bid on the auction with a valid id", async () => {
+    it("should bid on the auction with a valid id", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -195,7 +195,7 @@ describe("AuctionSale", function () {
 
       await expect(tx).to.be.revertedWith("Auction not found");
     });
-    it.skip("should bid on the auction with a value at least the reserve price", async () => {
+    it("should bid on the auction with a value at least the reserve price", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -209,7 +209,7 @@ describe("AuctionSale", function () {
       );
     });
 
-    it.skip("should bid on the auction which is not over", async () => {
+    it("should bid on the auction which is not over", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -218,7 +218,9 @@ describe("AuctionSale", function () {
         .connect(from)
         .bid(1, { value: ethers.utils.parseEther("1") });
 
-      ethers.provider.send("evm_increaseTime", [1 * day + 1]);
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
 
       const tx = auctionSale
         .connect(to)
@@ -227,7 +229,7 @@ describe("AuctionSale", function () {
       await expect(tx).to.be.revertedWith("Auction is over");
     });
 
-    it.skip("should bid on the auction which you already made a bid before", async () => {
+    it("should bid on the auction which you already made a bid before", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -244,7 +246,7 @@ describe("AuctionSale", function () {
         "You already have an outstanding bid"
       );
     });
-    it.skip("should bid on the auction with value bigger than previous bid", async () => {
+    it("should bid on the auction with value bigger than previous bid", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -277,7 +279,9 @@ describe("AuctionSale", function () {
         .connect(from)
         .bid(1, { value: ethers.utils.parseEther("0.5") });
 
-      await ethers.provider.send("evm_increaseTime", [1 * day + 1]);
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
 
       const tx = auctionSale.connect(owner).settle(1);
 
@@ -291,9 +295,12 @@ describe("AuctionSale", function () {
           ethers.utils.parseEther("0.5"),
           owner.address
         );
+
+      const balance = await asset.balanceOf(from.address, 0);
+      expect(balance).to.equal(10);
     });
 
-    it.skip("should bid on the auction with a bid already", async () => {
+    it("should settle the auction only once", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
@@ -302,105 +309,136 @@ describe("AuctionSale", function () {
         .connect(from)
         .bid(1, { value: ethers.utils.parseEther("0.5") });
 
-      const tx = auctionSale
-        .connect(to)
-        .bid(1, { value: ethers.utils.parseEther("1") });
+      const block = await ethers.provider.getBlock("latest");
 
-      const endTime =
-        (await ethers.provider.getBlock("latest")).timestamp + 1 * day;
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
+
+      await auctionSale.connect(owner).settle(1);
+
+      const tx = auctionSale.connect(owner).settle(1);
+
+      await expect(tx).to.be.revertedWith("Auction was already settled");
+    });
+    it("should settle the auction while it's not ongoing", async () => {
+      await auctionSale
+        .connect(owner)
+        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
+
+      await auctionSale
+        .connect(from)
+        .bid(1, { value: ethers.utils.parseEther("0.5") });
+
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day - 1]);
+
+      const tx = auctionSale.connect(owner).settle(1);
+
+      await expect(tx).to.be.revertedWith("Auction still in progress");
+    });
+    it("should settle the auction and send the money", async () => {
+      await auctionSale
+        .connect(owner)
+        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
+
+      await auctionSale
+        .connect(from)
+        .bid(1, { value: ethers.utils.parseEther("0.5") });
+
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
+
+      const tx = auctionSale.connect(owner).settle(1);
 
       await expect(() => tx).to.changeEtherBalance(
         from,
         ethers.utils.parseEther("0.5")
       );
-
-      await expect(tx)
-        .to.be.emit(auctionSale, "Bid")
-        .withArgs(
-          1,
-          0,
-          to.address,
-          ethers.utils.parseEther("1"),
-          from.address,
-          ethers.utils.parseEther("0.5"),
-          owner.address,
-          endTime
-        );
-    });
-    it.skip("should bid on the auction with a valid id", async () => {
-      await auctionSale
-        .connect(owner)
-        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
-
-      const tx = auctionSale
-        .connect(from)
-        .bid(10, { value: ethers.utils.parseEther("0.5") });
-
-      await expect(tx).to.be.revertedWith("Auction not found");
-    });
-    it.skip("should bid on the auction with a value at least the reserve price", async () => {
-      await auctionSale
-        .connect(owner)
-        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
-
-      const tx = auctionSale
-        .connect(from)
-        .bid(1, { value: ethers.utils.parseEther("0.1") });
-
-      await expect(tx).to.be.revertedWith(
-        "Bid must be at least the reserve price"
-      );
     });
 
-    it.skip("should bid on the auction which is not over", async () => {
+    it("should settle the auction and delete the auction", async () => {
       await auctionSale
         .connect(owner)
         .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
 
       await auctionSale
         .connect(from)
-        .bid(1, { value: ethers.utils.parseEther("1") });
-
-      ethers.provider.send("evm_increaseTime", [1 * day + 1]);
-
-      const tx = auctionSale
-        .connect(to)
-        .bid(1, { value: ethers.utils.parseEther("1") });
-
-      await expect(tx).to.be.revertedWith("Auction is over");
-    });
-
-    it.skip("should bid on the auction which you already made a bid before", async () => {
-      await auctionSale
-        .connect(owner)
-        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
-
-      await auctionSale
-        .connect(from)
-        .bid(1, { value: ethers.utils.parseEther("1") });
-
-      const tx = auctionSale
-        .connect(from)
-        .bid(1, { value: ethers.utils.parseEther("1") });
-
-      await expect(tx).to.be.revertedWith(
-        "You already have an outstanding bid"
-      );
-    });
-    it.skip("should bid on the auction with value bigger than previous bid", async () => {
-      await auctionSale
-        .connect(owner)
-        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
-
-      await auctionSale
-        .connect(from)
-        .bid(1, { value: ethers.utils.parseEther("1") });
-
-      const tx = auctionSale
-        .connect(to)
         .bid(1, { value: ethers.utils.parseEther("0.5") });
 
-      await expect(tx).to.be.revertedWith("Bid currentBid too low");
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
+
+      await auctionSale.connect(owner).settle(1);
+
+      const tx = auctionSale.connect(owner).getEndTimeForReserveAuction(1);
+      await expect(tx).to.be.revertedWith("Auction not found");
+    });
+  });
+
+  describe("auction end", async () => {
+    this.beforeEach(async () => {
+      await asset.mint(owner.address, 10);
+      await asset.mint(from.address, 10);
+      await asset.mint(to.address, 10);
+      await asset.mint(other.address, 10);
+    });
+    it("should end the auction", async () => {
+      await auctionSale
+        .connect(owner)
+        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
+
+      await auctionSale
+        .connect(from)
+        .bid(1, { value: ethers.utils.parseEther("0.5") });
+
+      let ok = await auctionSale.connect(owner).isAuctionEnded(1);
+      expect(ok).to.be.equal(false);
+
+      const block = await ethers.provider.getBlock("latest");
+
+      await ethers.provider.send("evm_mine", [block.timestamp + 1 * day + 1]);
+
+      ok = await auctionSale.connect(owner).isAuctionEnded(1);
+      expect(ok).to.be.equal(true);
+    });
+  });
+
+  describe("bid amount", async () => {
+    this.beforeEach(async () => {
+      await asset.mint(owner.address, 10);
+      await asset.mint(from.address, 10);
+      await asset.mint(to.address, 10);
+      await asset.mint(other.address, 10);
+    });
+    it("should return the correct bid amount", async () => {
+      await auctionSale
+        .connect(owner)
+        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
+
+      const amount = await auctionSale.connect(owner).getMinBidAmount(1);
+      expect(amount).to.be.equal(ethers.utils.parseEther("0.5"));
+    });
+
+    it("should return the correct bid amount after a bid", async () => {
+      await auctionSale
+        .connect(owner)
+        .list(0, 10, ethers.utils.parseEther("0.5"), 1 * day);
+
+      await auctionSale
+        .connect(from)
+        .bid(1, { value: ethers.utils.parseEther("0.5") });
+
+      let amount = await auctionSale.connect(owner).getMinBidAmount(1);
+      expect(amount).to.be.equal(ethers.utils.parseEther("0.6"));
+
+      await auctionSale
+        .connect(to)
+        .bid(1, { value: ethers.utils.parseEther("2") });
+
+      amount = await auctionSale.connect(owner).getMinBidAmount(1);
+      expect(amount).to.be.equal(ethers.utils.parseEther("2.2"));
     });
   });
 });

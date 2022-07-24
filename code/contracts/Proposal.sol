@@ -112,8 +112,7 @@ contract ProposalSale is ERC1155Holder {
             ""
         );
 
-        Structs.List memory _list = Structs.List(msg.sender, _assetId, _amount);
-        lists[totalLists] = _list;
+        lists[totalLists] = Structs.List(msg.sender, _assetId, _amount);
         emit List(totalLists, msg.sender, _assetId, _amount);
         totalLists++;
     }
@@ -125,51 +124,52 @@ contract ProposalSale is ERC1155Holder {
         checkValidProposal(_saleId, _amount, msg.value)
         returns (bool)
     {
+        Structs.List memory _list = lists[_saleId];
         if (
             activeProposals[_saleId][msg.sender] == 0 &&
             proposals[_saleId][0].buyer != msg.sender
         ) {
-            Structs.Proposals memory _proposal = Structs.Proposals(
+            uint256 _proposalId = proposalsIdCounter[_saleId];
+
+            proposals[_saleId][proposalsIdCounter[_saleId]] = Structs.Proposals(
                 msg.sender,
                 msg.value,
                 _amount
             );
 
-            proposals[_saleId][proposalsIdCounter[_saleId]] = _proposal;
-
             emit Propose(
                 _saleId,
-                proposalsIdCounter[_saleId],
-                lists[_saleId].seller,
+                _proposalId,
+                _list.seller,
                 msg.sender,
-                lists[_saleId].assetId,
+                _list.assetId,
                 _amount,
                 msg.value
             );
 
-            activeProposals[_saleId][msg.sender] = proposalsIdCounter[_saleId];
-            proposalsIdCounter[_saleId]++;
+            activeProposals[_saleId][msg.sender] = _proposalId;
+            _proposalId++;
+            proposalsIdCounter[_saleId] = _proposalId;
         } else {
+            uint256 _proposalId = activeProposals[_saleId][msg.sender];
             Structs.Proposals memory _proposal = proposals[_saleId][
-                activeProposals[_saleId][msg.sender]
+                _proposalId
             ];
 
             uint256 _price = _proposal.price;
             _proposal.amount = _amount;
             _proposal.price = msg.value;
             _proposal.buyer = msg.sender;
-            proposals[_saleId][
-                activeProposals[_saleId][msg.sender]
-            ] = _proposal;
+            proposals[_saleId][_proposalId] = _proposal;
 
             payable(_proposal.buyer).transfer(_price);
 
             emit Propose(
                 _saleId,
-                activeProposals[_saleId][msg.sender],
-                lists[_saleId].seller,
+                _proposalId,
+                _list.seller,
                 msg.sender,
-                lists[_saleId].assetId,
+                _list.assetId,
                 _amount,
                 msg.value
             );
@@ -193,7 +193,7 @@ contract ProposalSale is ERC1155Holder {
             ""
         );
 
-        proposals[_saleId][_proposalId] = Structs.Proposals(address(0), 0, 0);
+        delete proposals[_saleId][_proposalId];
         lists[_saleId] = Structs.List(_list.seller, _list.assetId, 0);
         emit Accept(
             _saleId,
@@ -221,7 +221,6 @@ contract ProposalSale is ERC1155Holder {
 
         lists[_saleId] = Structs.List(_list.seller, _list.assetId, 0);
         emit Cancel(_saleId, _list.seller, _list.assetId, _list.amount);
-        (_saleId);
     }
 
     function cancelPropose(uint256 _saleId, uint256 _proposalId)
@@ -229,14 +228,14 @@ contract ProposalSale is ERC1155Holder {
         checkCancelProposal(_saleId, _proposalId)
     {
         Structs.Proposals memory _proposal = proposals[_saleId][_proposalId];
-        proposals[_saleId][_proposalId] = Structs.Proposals(address(0), 0, 0);
-        console.log(lists[_saleId].assetId);
+        Structs.List memory _list = lists[_saleId];
+        delete proposals[_saleId][_proposalId];
         emit CancelProposal(
             _saleId,
             _proposalId,
-            lists[_saleId].seller,
+            _list.seller,
             _proposal.buyer,
-            lists[_saleId].assetId
+            _list.assetId
         );
         payable(_proposal.buyer).transfer(_proposal.price);
     }

@@ -44,3 +44,28 @@ npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
 # Performance optimizations
 
 For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
+
+# Analysis
+
+### Can the NFT sale be restarted ? If so by who ?
+
+Yes, it can be restarted by anyone if the caller sends a number not equal to 0 as the argument of the `startSale` function. If the argument is 0, then the caller must be th `deployer` of the contract.
+
+### What problems do you find with the \_mint() function ?
+
+According to me, the `mint()` function is vulnerable to a re-entrancy attack as it is calling the `transfer` function `payable(msg.sender).transfer((address(this)).balance - salePrice)` before completing the actual minting logic in `_mint()`.
+
+### Why is this contract not susceptible to integer overflow/wrapping ? Would this still be true on the previous major solidity version ?
+
+From `solidity 0.8.0`, instead of changing the value to the opposite end of the limit of the variable when it under/overflows and not throwing an error, it has started to `revert` the transaction if any of the variable under/overflows.
+This was not possible by the previous version of solidty cause of the reason stated above.
+
+### Would you change something on this contract ?
+
+I would like to change a few of things in the contract :-
+
+1. Using out of limit types for variables that will never exhaust its limit like `TOKEN_LIMIT` which can either be 10 or 1337. I would use `uint16` instead of `uint256` thus saving storage and gas.
+
+2. Line up the variables in proper line in order to use the storage blocks efficiently in solidity.
+
+3. Instead of generating a random ID which can be predicted ahead of time, I would use an external oracle to supply with an ID to avoid all the heavy computaions.
